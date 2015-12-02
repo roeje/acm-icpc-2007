@@ -6,151 +6,143 @@
 #include <sstream>
 #include <stack>
 #include <regex>
-#include <vector>
+
 using namespace std;
 
-//reads the data in
-void read_data(istream &input);
-//checks for a valid tag
-vector <string> get_tag(const string &io);
-bool is_contained(const string &io, const char find);
-bool tag_checker(string lhs, const string &rhs);
-void clear_stack();
-string slash_tag_maker(string &io);
-//stores the current tags.
-stack <string> tag_holder;
-regex tag("(<([A-Z])>)");
-string slash_tag_finder(const string &io);
-string tag_make(const string &io);
+void solver(string& input, string& word);
+void readData(istream& input);
+bool checkValidTag(string left, string& right);
+string findClosing(string& input);
+string createTag(string& input);
+string createClosingTag(string &input);
+stack <string> tagStack;
 
-regex slash_tag("(<\/([A-Z])>)");
+/*Regex expressions used to located opening and closing tags within text data*/
+regex openTag("(<([A-Z])>)");
+regex closingTag("(<\/([A-Z])>)");
 
-//---------------------------------------------------------------------------------
-// A 163 style bullshit method. Cuz i was mad at regular expressions. It should be
-// noted that this statement will break when the tag doesn't follow a specific order.
-// For instance, "</...stuff ABCJKL(capitals)>" followed by a </B> correctly formatted tag.
-// I've not tested it. Works for basic things. Needs nested if statements.
-//---------------------------------------------------------------------------------
-void check_tag(const string &io, string &curr_res){
-    if(io == "#"){
-        if(tag_holder.empty()){
-            cout << "Correctly tagged paragraph"<<endl;
+void readData(istream &input){
+    string c;
+
+    /*read in each word delimited by ws*/
+    while(input >> ws >> c){
+
+        /*Words less than the min tag size of 3 are not considered*/
+        if(c.length() >= 3){
+            string temp = "";
+            solver(c, temp);
+        }
+    }
+}
+
+/*Logic method used to check for valid tags and valid tag pairs*/
+void solver(string& input, string& word){
+
+    /*If end of paragraph is hit and stack is not empty, create error message*/
+    if (input == "#") {
+        if (tagStack.empty()) {
+            cout << "Correctly tagged paragraph" << endl;
             return;
-        }else{
-            cout << "Expected "<<slash_tag_maker(tag_holder.top())<<" found #"<<endl;
-            for(auto &dump = tag_holder; !dump.empty(); dump.pop()){}
+        }
+        else {
+            cout << "Expected " << createClosingTag(tagStack.top()) << " found #" << endl;
+
+            /*Clear stack of remaining items*/
+            while(!tagStack.empty()) {
+                tagStack.pop();               
+            }
             return;
         }
     }
-    if(io.length() == 0){
+    
+    if(input.length() == 0){
         return;
     }
-    if(io.at(0)=='<'){
+    
+    if(input.at(0) == '<'){
 
-        if(io.length()>2 && io.at(1) == '/'){
-            curr_res = slash_tag_finder(io);
+        
+        if(input.length() > 2 && input.at(1) == '/'){
+            word = findClosing(input);
         }else{
-            curr_res = tag_make(io);
+            word = createTag(input);
         }
 
-        if(regex_match(curr_res.begin(), curr_res.end(), tag)){
-            tag_holder.push(curr_res);
-            curr_res = "";
+        /*If a tag matches an open tag, push to stack for later comparison*/
+        if(regex_match(word.begin(), word.end(), openTag)){
+            tagStack.push(word);
+            word = "";
         }
 
-        else if(regex_match(curr_res.begin(), curr_res.end(), slash_tag)){
-            if(tag_holder.empty()){
-                cout << "Expected "<<"#"<< " found "<<curr_res<<endl;
-                for(auto &dump = tag_holder; !dump.empty(); dump.pop()){}
+        else if(regex_match(word.begin(), word.end(), closingTag)){
+            if(tagStack.empty()){
+                cout << "Expected " << "#" << " found " << word << endl;
+                for(auto &dump = tagStack; !dump.empty(); dump.pop()){}
                 return;
             }
-            else if(tag_checker(tag_holder.top(), curr_res) ){
+                
+            else if(checkValidTag(tagStack.top(), word) ){
 
-                tag_holder.pop();
+                tagStack.pop();
             }
+                
             else{
-                cout << "Expected "<<slash_tag_maker(tag_holder.top())<<" found "<<curr_res<<endl;
-                for(auto &dump = tag_holder; !dump.empty(); dump.pop()){}
+                cout << "Expected " << createClosingTag(tagStack.top()) << " found " << word << endl;
+                for(auto &dump = tagStack; !dump.empty(); dump.pop()){}
                 return;
             }
 
-            curr_res = "";
+            word = "";
         }
 
     }
-    check_tag(io.substr(1), curr_res);
+    string temp = input.substr(1);
+    solver(temp, word);
 }
 
-
-string tag_make(const string &io){
-    if(io.length()<3){
-        return "";
-    }
-    string result = "<";
-    int i = 1;
-
-    while( i<io.length() && (io.at(i) >= 'A' && io.at(i) <= 'Z') && io.at(i) != '>'){
-        result += io.at(i);
-        ++i;
-    }
-    result += '>';
-    return result;
-}
-
-string slash_tag_finder(const string &io){
-    if(io.length() < 3){
-        return "";
-    }
-    string result = "</";
-    int i = 2;
-    while(i<io.length() && (io.at(i) >= 'A' && io.at(i) <= 'Z') && io.at(i) != '>'){
-        result += io.at(i);
-        ++i;
-    }
-    result += '>';
-    return result;
-}
-
-
-//checks if the lefthand side is equal to the right hand side.
-//
-bool tag_checker(string lhs, const string &rhs){
-    lhs = "</"+lhs.substr(1);
-    if(lhs == rhs){
+bool checkValidTag(string left, string &right){
+    left = "</" + left.substr(1);
+    if(left == right){
         return true;
     }
     return false;
 }
 
-void clear_stack(){ for(auto &dump = tag_holder; !dump.empty(); dump.pop()){} }
+string createTag(string &input){
+    if(input.length() < 3){
+        return "";
+    }
+    string result = "<";
+    int i = 1;
 
-string slash_tag_maker(string &io){
-    return "</"+io.substr(1);
+    while(i < input.length() && (input.at(i) >= 'A' && input.at(i) <= 'Z') && input.at(i) != '>'){
+        result += input.at(i);
+        ++i;
+    }
+    result += '>';
+    return result;
 }
 
-void read_data(istream &input){
-    string word;
-    while(input >> ws >> word){
-        if(word.length()>= 3){
-            string w = "";
-            check_tag(word, w);
-        }
-    }
+string createClosingTag(string &input){
+    return "</" + input.substr(1);
 }
 
-bool is_contained(const string &io, const char find){
-    for(auto i = io.cbegin(); i != io.cend(); ++i){
-        if(*i == find){
-            return true;
-        }
+
+string findClosing(string &input){
+    if(input.length() < 3){
+        return "";
     }
-    return false;
+    string result = "</";
+    int i = 2;
+    while(i < input.length() && (input.at(i) >= 'A' && input.at(i) <= 'Z') && input.at(i) != '>'){
+        result += input.at(i);
+        ++i;
+    }
+    result += '>';
+    return result;
 }
 
 int main() {
     istream& data = cin;
-    read_data(data);
-
-
-    return 0;
+    readData(data);
 }
