@@ -1,9 +1,8 @@
 //
-// Created by Jesse on 11/30/2015.
+// Created by Jesse on 11/29/2015.
 //
+
 #include <iostream>
-#include <string>
-#include <sstream>
 #include <stack>
 #include <regex>
 
@@ -82,7 +81,6 @@ void solver(string& input, string& word){
             }
                 
             else if(checkValidTag(tagStack.top(), word) ){
-
                 tagStack.pop();
             }
                 
@@ -100,6 +98,7 @@ void solver(string& input, string& word){
     solver(temp, word);
 }
 
+/*Checks string for valid tag*/
 bool checkValidTag(string left, string &right){
     left = "</" + left.substr(1);
     if(left == right){
@@ -108,6 +107,8 @@ bool checkValidTag(string left, string &right){
     return false;
 }
 
+/*Creates an opening tag based on input string*/
+/*Used for matching*/
 string createTag(string &input){
     if(input.length() < 3){
         return "";
@@ -123,11 +124,12 @@ string createTag(string &input){
     return result;
 }
 
+/*Creates a closing tag based on input string*/
 string createClosingTag(string &input){
     return "</" + input.substr(1);
 }
 
-
+/*Finds closing tag. Used to start the comparison process after all opening tags have been pushed to stack*/
 string findClosing(string &input){
     if(input.length() < 3){
         return "";
@@ -142,7 +144,23 @@ string findClosing(string &input){
     return result;
 }
 
+/*Builds istream and passes to solving methods*/
 int main() {
+
+#ifndef ONLINE_JUDGE
+    string testData = "The following text<C><B>is centred and in boldface</B></C>#\n"
+            "<B>This <\\g>is <B>boldface</B> in <<*> a</B> <\\6> <<d>sentence#\n"
+            "<B><C> This should be centred and in boldface, but the\n"
+            "tags are wrongly nested </B></C>#\n"
+            "<B>This should be in boldface, but there is an extra closing\n"
+            "tag</B></C>#\n"
+            "<B><C>This should be centred and in boldface, but there is\n"
+            "a missing closing tag</C>#\n"
+            "#";
+
+    istringstream data (testData);
+#else
     istream& data = cin;
+#endif
     readData(data);
 }
